@@ -15,6 +15,7 @@ namespace TextToSpeechTTV
         private readonly string blocklist = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Config", "blocklist.txt");
         private readonly string badwords = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Config", "badwords.txt");
         private readonly string usernames = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Config", "usernames.txt");
+        private readonly string voices = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Config", "voices.txt");
         private readonly string foldername = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Config");
 
         public Config()
@@ -49,6 +50,8 @@ namespace TextToSpeechTTV
                 FillUsernamesExamples();
             if (!File.Exists(creds))
                 FillCredsFile();
+            if (!File.Exists(voices))
+                FillVoicesFile();
 
             Console.WriteLine("Created config File. Please set up your creds and settings!\nPress any key to quit...");
             Console.ReadKey();
@@ -90,8 +93,6 @@ namespace TextToSpeechTTV
         private void FillOptionsFile()
         {
             File.WriteAllLines(options, new string[] {
-                "Set TTS Voice:",
-                "Microsoft David Desktop",
                 "Set Message Connector:",
                 "said",
                 "Maximum allowed Characters, 0 for no limit:",
@@ -100,6 +101,14 @@ namespace TextToSpeechTTV
                 "beep",
                 "Say this, if long Sentence:",
                 "to be continued"
+            });
+        }
+
+        private void FillVoicesFile()
+        {
+            File.WriteAllLines(options, new string[] {
+                "eng:",
+                "Microsoft Zira Desktop",
             });
         }
 
@@ -123,32 +132,54 @@ namespace TextToSpeechTTV
 
         public string SetVoice()
         {
-            string voice = File.ReadAllLines(options)[1];
+            string voice = File.ReadAllLines(voices)[1];
             return voice;
         }
         public string SetMessageConnector()
         {
-            string say = File.ReadAllLines(options)[3];
+            string say = File.ReadAllLines(options)[1];
             return say;
         }
 
         public int GetMaxCharacterLength()
         {
-            string wordLength = File.ReadAllLines(options)[5];
+            string wordLength = File.ReadAllLines(options)[3];
             int.TryParse(wordLength, out int result);
             return result;
         }
 
         public string ReplaceSwearWord()
         {
-            string antiswear = File.ReadAllLines(options)[7];
+            string antiswear = File.ReadAllLines(options)[5];
             return antiswear;
         }
 
         public string GetLongMessage()
         {
-            string longMessage = File.ReadAllLines(options)[9];
+            string longMessage = File.ReadAllLines(options)[7];
             return longMessage;
+        }
+
+        public string GetLanguageVoice(string lang)
+        {
+            string[] voiceLangs = File.ReadAllLines(voices);
+            string voice = SetVoice();
+
+            for(int i = 0; i < voiceLangs.Length; i++)
+            {
+                if(i%2==0)
+                {
+                    try
+                    {
+                        if (voiceLangs[i].Split(':')[0].Equals(lang))
+                        {
+                            voice = voiceLangs[++i];
+                            break;
+                        }
+                    } catch { }
+                }
+            }
+            return voice;
         }
     }
 }

@@ -9,6 +9,7 @@ using TwitchLib.Client.Events;
 using TwitchLib.Client.Extensions;
 using TwitchLib.Client.Models;
 using System.Text.RegularExpressions;
+using NTextCat;
 
 namespace TextToSpeechTTV
 {
@@ -79,15 +80,50 @@ namespace TextToSpeechTTV
             Console.ForegroundColor = ConsoleColor.Gray;
         }
 
+        private void SetLanguageSpeaker(string text)
+        {
+            RankedLanguageIdentifierFactory factory = new RankedLanguageIdentifierFactory();
+            RankedLanguageIdentifier identifier = factory.Load("LanguageModels\\Core14.profile.xml");
+            IEnumerable<Tuple<LanguageInfo, double>> find = identifier.Identify(text);
+
+            int tolerance = 6;
+
+            if (find.Count() > 1 && find.First().Item1.Iso639_3.Equals("eng"))
+            {
+                int i = 1;
+                while (find.Count() > i && (!find.ElementAt(i).Item1.Iso639_3.Equals("fra") || find.ElementAt(i).Item2 - find.First().Item2 >= tolerance))
+                {
+                    i++; 
+                }
+
+                if(find.Count() > i && find.ElementAt(i).Item1.Iso639_3.Equals("fra") && find.ElementAt(i).Item2 - find.First().Item2 < tolerance)
+                {
+                    speechHelper.ChangeSpeaker(config.GetLanguageVoice(find.ElementAt(1).Item1.Iso639_3));
+                    messageConnector = "dit";
+                } else
+                {
+                    speechHelper.ChangeSpeaker(config.GetLanguageVoice(find.First().Item1.Iso639_3));
+                    messageConnector = config.SetMessageConnector();
+                }
+            } else
+            {
+                speechHelper.ChangeSpeaker(config.GetLanguageVoice(find.First().Item1.Iso639_3));
+                if(find.First().Item1.Iso639_3.Equals("fra"))
+                {
+                    messageConnector = "dit";
+                } else
+                {
+                    messageConnector = config.SetMessageConnector();
+                }
+            }
+        }
+
         private void OnMessageReceived(object sender, OnMessageReceivedArgs e)
         {
             CommandHandler commandHandler = new CommandHandler();
+            Console.WriteLine($"{e.ChatMessage.Username}: {e.ChatMessage.Message}");
 
-            Console.WriteLine($"{e.ChatMessage.Username}:{e.ChatMessage.Message}");
             string newUsername = speechWordHandler.ContainsUsername(e.ChatMessage.Username);
-
-            if (e.ChatMessage.Username == e.ChatMessage.BotUsername) //Ignore TTS-Bot.
-                return;
 
             if (e.ChatMessage.IsModerator || e.ChatMessage.IsBroadcaster)
             {
@@ -131,6 +167,11 @@ namespace TextToSpeechTTV
             if (url.Success) //Check if contains URL
             {
                 newMessageEdited = e.ChatMessage.Message.Replace(url.Value, "url");
+
+                SetLanguageSpeaker(e.ChatMessage.Message.Replace(url.Value, " "));
+            } else
+            {
+                SetLanguageSpeaker(newMessageEdited);
             }
 
             if (badWords.Count != 0) //Check if containing bad words
@@ -138,6 +179,7 @@ namespace TextToSpeechTTV
                 for (int i = 0; i < badWords.Count; i++)
                     newMessageEdited = newMessageEdited.Replace(badWords.ElementAt(i), antiswear);
             }
+
             if (maxWordLength <= newMessageEdited.Length && maxWordLength != 0) //Check if Sentence is too long
             {
                 newMessageEdited = newMessageEdited.Substring(0, Math.Min(newMessageEdited.Length, maxWordLength)) + "....... " + longMessage;

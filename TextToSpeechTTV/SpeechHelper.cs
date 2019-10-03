@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using System.Speech.Synthesis;
 using System.Globalization;
 using System.Collections.ObjectModel;
+using NTextCat;
+using IvanAkcheurov;
 
 namespace TextToSpeechTTV
 {
@@ -22,6 +24,11 @@ namespace TextToSpeechTTV
 
             speechSynthesizer.SetOutputToDefaultAudioDevice();
 
+            ChangeSpeaker(ttsName);
+        }
+
+        public void ChangeSpeaker(string ttsName)
+        {
             try
             {
                 speechSynthesizer.SelectVoice(ttsName);
@@ -31,7 +38,7 @@ namespace TextToSpeechTTV
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("TTS Name does not exist. TTS will NOT work.");
                 Console.ForegroundColor = ConsoleColor.Gray;
-            }            
+            }
         }
 
         public static List<string> GetAllInstalledVoices()
